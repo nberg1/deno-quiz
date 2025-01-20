@@ -2,19 +2,6 @@
 // so that anyone running this application doesn't need to get one of their own.
 const API_KEY = "e8eed9f4eb9ee1be15dbaf4e718757d4";
 
-interface Movie {
-    id: number;
-    title: string;
-    [key: string]: any;
-}
-
-interface Actor {
-    id: number;
-    name: string;
-    known_for: Movie[];
-    profile_path: string;
-}
-
 interface MovieCredit {
     id: number;
     cast: any[];
