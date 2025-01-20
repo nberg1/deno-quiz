@@ -4,20 +4,34 @@ const handler = async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
 
     // Serve CSS file
-
+    if (url.pathname === "/styles.css") {
+        const css = await Deno.readTextFile("./styles.css");
+        return new Response(css, {
+          headers: { "Content-Type": "text/css" },
+        });
+      }
 
     // Serve script file
+    if (url.pathname === "/script.js") {
+        const script = await Deno.readTextFile("./script.js");
+        return new Response(script, {
+          headers: { "Content-Type": "application/javascript" },
+        });
+    }
+
 
     // Serve HTML file
-    if (req.method === "GET" && url.pathname === "/") {
+    if (url.pathname === "/") {
         const html = await Deno.readTextFile("./index.html");
         return new Response(html, {
             headers: { "Content-Type": "text/html"},
         });
-    } else if (req.method === "GET" && url.pathname === "/question") {
+    } 
+    
+    // Fetch data and generate question
+    if (url.pathname === "/question") {
         try {
-            const question = generateQuestion();
-            console.log(question);
+            const question = await generateQuestion();
             return new Response(JSON.stringify(question), {
                 headers: { "Content-Type": "application/json" },
             });
@@ -25,7 +39,7 @@ const handler = async (req: Request): Promise<Response> => {
             console.error("Error generating question:", error.message);
             return new Response("Failed to generate question", { status: 500 });
         }
-      }
+    }
     return new Response("Not Found", { status: 404 });
 };
 

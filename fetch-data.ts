@@ -1,3 +1,5 @@
+// Usually would not add this to github but for the purpose of this project, will keep for now
+// so that anyone running this application doesn't need to get one of their own.
 const API_KEY = "e8eed9f4eb9ee1be15dbaf4e718757d4";
 
 interface Movie {
@@ -19,9 +21,12 @@ interface MovieCredit {
 }
 
 interface MovieData {
-    actors: any[];
     movieCredits: Map<number, any>;
+    correctActor: any;
+    actorMovies: any[];
 }
+
+let usedActors: any[] = [];
 
 // Fetch actors data from TMDb API
 const fetchActorData = async(endpoint: string): Promise<any[]> => {
@@ -45,8 +50,8 @@ const fetchMovieCreditsData = async(endpoint: string): Promise<any> => {
 
 // Main function to fetch data
 export const fetchData = async (): Promise<MovieData | undefined> => {
-    try {        
-        const numPages = 20;
+    try {     
+        const numPages = 2;
         let actors: any[] = [];
         let allActors: any[] = [];
         let movieMap = new Map();
@@ -56,38 +61,57 @@ export const fetchData = async (): Promise<MovieData | undefined> => {
             actors.push(await fetchActorData(`https://api.themoviedb.org/3/person/popular?page=${pageIndex}&api_key=${API_KEY}`));
         }
 
+        // get all the actors
         actors.forEach((actorSet) => {
             allActors = allActors.concat(actorSet);
         })        
 
-        // go through each of the actors and add each of the known movies to a movie map if not already there
-        allActors.forEach((actor) => {
-            actor.known_for.forEach((media: any) => {
-                if (media.media_type == "movie") {
-                    // get the movie id
-                    const movieId = media.id;
-                    if (!movieMap.get(movieId)) {
-                        movieMap.set(movieId, {movieTitle: media.title, allActors: []});
-                    }
+        let actorMeetsCriteria = false;
+        let correctActor;
+        while (!actorMeetsCriteria) {
+            // choose random actor from actors list
+            correctActor = allActors?.[Math.floor(Math.random() * allActors.length)];
+
+            let movieCount = 0;
+            // check their know fors original language
+            correctActor.known_for.forEach((media: any) => {
+                if (media.media_type == "movie" && media.original_language == "en") {
+                    movieCount += 1;
                 }
-            })            
-        });
-    
+            });
+            // if all 3 movies are english movies, let's assume its a US actor
+            if (movieCount == 3) {
+                actorMeetsCriteria = true;
+            }
+            // make sure not already used actor
+            const correctActorId = correctActor.id;
+            const alreadyUsedActor = usedActors.some((actor) => actor.id === correctActorId);
+            if (alreadyUsedActor) {
+                actorMeetsCriteria = false;
+            }
+        }
+        // mark actor as used to not randomly choose them again
+        usedActors.push(correctActor);
+
+        // make api call to get people movie credit
+        // do the movie credit mapping 
         console.log("Fetching movie credits data...");
-        // go through movieMap keys and fetch movie credits data for each of the movies in the map
-        for(const movieId of Array.from( movieMap.keys()) ) {
-            const movieCredit: MovieCredit = await fetchMovieCreditsData(`https://api.themoviedb.org/3/movie/${movieId.toString()}/credits?language=en-US&api_key=${API_KEY}`);
+        for (let i = 0; i < correctActor.known_for.length; i++) {
+            const currentMovie = correctActor.known_for[i];
+            movieMap.set(currentMovie.id, {movieTitle: currentMovie.title, allActors: []})
+            const movieCredit: MovieCredit = await fetchMovieCreditsData(`https://api.themoviedb.org/3/movie/${currentMovie.id.toString()}/credits?language=en-US&api_key=${API_KEY}`);
             movieCredit.cast.forEach((credit) => {
                 if (credit.character) {
-                    movieMap.get(movieId).allActors.push({id: credit.id, name: credit.name});
+                    movieMap.get(currentMovie.id).allActors.push({id: credit.id, name: credit.name});
                 }
             });
         }
 
         console.log("Data preparation complete!");
         const movieData: MovieData = {
-            actors: allActors,
-            movieCredits: movieMap
+            movieCredits: movieMap,
+            correctActor: correctActor,
+            actorMovies: correctActor.known_for
         };
         return movieData;
     } catch (error: any) {
@@ -99,17 +123,14 @@ export const fetchData = async (): Promise<MovieData | undefined> => {
 // Function to generate a quiz quetion
 export const generateQuestion = async (): Promise<any> => {
     const movieData = await fetchData();
-    const actors = movieData?.actors;
     const movieCredits = movieData?.movieCredits;
-
-    // choose random actor from actors list
-    const correctActor = actors?.[Math.floor(Math.random() * actors.length)];
-    console.log(correctActor);
+    const correctActor = movieData?.correctActor;
+    const actorMovies = movieData?.actorMovies;
 
     // pick 3 movies the actor has played in
     let selectedMovies: string[] = [];
     let selectedMovieIds: number[] = [];
-    correctActor.known_for.forEach((movie: any) => {
+    actorMovies?.forEach((movie: any) => {
         selectedMovies.push(movie.title);
         selectedMovieIds.push(movie.id);
     });
@@ -120,15 +141,16 @@ export const generateQuestion = async (): Promise<any> => {
     for (const movieId of selectedMovieIds) {
         const actorOptions = movieCredits?.get(movieId).allActors;
         actorOptions.forEach((actor: any) => {
-            if (actorMap.has(actor.name)) {
-                actorMap.set(actor.name, actorMap.get(actor.name) + 1);
-            } else {
-                actorMap.set(actor.name, 1);
+            if (actor.name != correctActor.name) {
+                if (actorMap.has(actor.name)) {
+                    actorMap.set(actor.name, actorMap.get(actor.name) + 1);
+                } else {
+                    actorMap.set(actor.name, 1);
+                }
             }
+
         })
     }
-
-    // console.log(actorMap);
 
     // get all actors from actor map where their occurrences are less than 3
     // takes care of edge case where there is a possibility more than 1 actor is in all three movies
@@ -144,9 +166,6 @@ export const generateQuestion = async (): Promise<any> => {
     // prepare final options
     const allOptions = [...shuffledWrongActors, correctActor.name].sort(() => Math.random() - 0.5);
 
-    console.log("Correct Actor:", correctActor.name);
-    console.log("Selected Movies:", selectedMovies);
-    console.log("Wrong Actors:", shuffledWrongActors);
     // Construct the quiz question
     return {
         question: `Which actor played in all three movies: "${selectedMovies[0]}", "${selectedMovies[1]}", and "${selectedMovies[2]}"?`,
