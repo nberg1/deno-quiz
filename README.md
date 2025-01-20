@@ -1,6 +1,6 @@
 # Deno Quiz
 
-A fun CLI quiz application built using Deno and the TMDb API to test your knowledge of actors and movies.
+A fun quiz application built using Deno and the TMDb API to test your knowledge of actors and movies.
 
 ## Features
 - Fetches actor data and movie data from the TMDb API.
