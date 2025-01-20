@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deno Quiz</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <h1>Deno Quiz</h1>
+  <div class="question-container">
+    <p class="question">Loading question...</p>
+    <div class="answers"></div>
+  </div>
+  <script>
+    // Frontend script for fetching and displaying questions
+    async function loadQuestion() {
+      const response = await fetch("/question");
+      const data = await response.json();
+
+      const questionElement = document.querySelector(".question");
+      const answersContainer = document.querySelector(".answers");
+
+      // Display question
+      questionElement.textContent = data.question;
+
+      // Display answers
+      answersContainer.innerHTML = "";
+      data.answers.forEach((answer, index) => {
+        const button = document.createElement("button");
+        button.textContent = answer;
+        button.onclick = () => checkAnswer(index, data.correct);
+        answersContainer.appendChild(button);
+      });
+    }
+
+    function checkAnswer(selected, correct) {
+      if (selected === correct) {
+        alert("Correct!");
+      } else {
+        alert("Wrong! Try again.");
+      }
+      loadQuestion();
+    }
+
+    // Load the first question
+    loadQuestion();
+  </script>
+</body>
+</html>
