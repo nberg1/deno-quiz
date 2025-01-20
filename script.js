@@ -35,5 +35,5 @@ function checkAnswer(selectedIndex, correctIndex) {
   }
   
 // Load the first question when the page is ready
-window.onload = loadQuestion;
+globalThis.onload = loadQuestion;
 

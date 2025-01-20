@@ -51,10 +51,10 @@ const fetchMovieCreditsData = async(endpoint: string): Promise<any> => {
 // Main function to fetch data
 export const fetchData = async (): Promise<MovieData | undefined> => {
     try {     
-        const numPages = 2;
-        let actors: any[] = [];
+        const numPages = 12;
+        const actors: any[] = [];
         let allActors: any[] = [];
-        let movieMap = new Map();
+        const movieMap = new Map();
         // first fetch the actors to get some of the movies they are known for
         console.log("Fetching actor data...");
         for (let pageIndex = 1; pageIndex <= numPages; pageIndex++) {
@@ -128,15 +128,15 @@ export const generateQuestion = async (): Promise<any> => {
     const actorMovies = movieData?.actorMovies;
 
     // pick 3 movies the actor has played in
-    let selectedMovies: string[] = [];
-    let selectedMovieIds: number[] = [];
+    const selectedMovies: string[] = [];
+    const selectedMovieIds: number[] = [];
     actorMovies?.forEach((movie: any) => {
         selectedMovies.push(movie.title);
         selectedMovieIds.push(movie.id);
     });
 
     // Find other actors from the selected movies
-    let actorMap: Map<string, number> = new Map();
+    const actorMap: Map<string, number> = new Map();
     const potentialWrongActors: string[] = [];
     for (const movieId of selectedMovieIds) {
         const actorOptions = movieCredits?.get(movieId).allActors;
