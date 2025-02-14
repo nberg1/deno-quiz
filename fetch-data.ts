@@ -1,6 +1,6 @@
 // Usually would not add this to github but for the purpose of this project, will keep for now
 // so that anyone running this application doesn't need to get one of their own.
-const API_KEY = "e8eed9f4eb9ee1be15dbaf4e718757d4";
+const API_KEY = "YOUR_API_KEY";
 
 interface MovieCredit {
     id: number;
